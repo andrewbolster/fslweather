@@ -1,10 +1,12 @@
 #!/usr/bin/python3
-import RPi.GPIO as GPIO
-from time import time, sleep
+import json
 import math
 from argparse import ArgumentParser
+from time import time, sleep
 
-import json
+import RPi.GPIO as GPIO
+
+from .hue import hue_light_colouring
 
 #variable setup
 count = 0
@@ -16,6 +18,8 @@ json_path = '/var/www/data.json'
 #GPIO setup
 GPIO.setmode(GPIO.BCM)
 GPIO.setup(pin, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+GPIO.setup(16, GPIO.OUT)
+
 
 # Custom Value and Rate generators for Rainfall
 def calculate_rainfall_value():
@@ -49,20 +53,30 @@ def count_interval():
     return this_count
 
 
-def action(channel):
+def rising_action(channel):
     global count
     global last_time
+    GPIO.output(16, GPIO.LOW)
     last_time = time()
     count = count + 1
 
 
+def falling_action(channel):
+    GPIO.output(16, GPIO.HIGH)
+
+
+
 def main():
-    GPIO.add_event_detect(pin, GPIO.RISING, callback=action, bouncetime=300)
+    GPIO.add_event_detect(pin, GPIO.RISING, callback=rising_action, bouncetime=300)
+    GPIO.add_event_detect(pin, GPIO.FALLING, callback=falling_action, bouncetime=300)
+
 
     parser = ArgumentParser(prog='fslweather')
     parser.add_argument('--rainfall', action='store_true')
     parser.add_argument('--windspeed', action='store_true')
     parser.add_argument('--asservice', action='store_true')
+    parser.add_argument('--withhue', action='store_true')
+
     args = parser.parse_args()
 
     if not (args.rainfall or args.windspeed):
@@ -97,4 +111,6 @@ def main():
             json.dump(data, outfile)
         if not args.asservice:
             print(template.format(**data), end='')
+        if args.withhue:
+            hue_light_colouring('LightStrips 1', data['rate'], maximum=data['max'])
         sleep(calculate_interval)
