@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/python
 import json
 import math
 from argparse import ArgumentParser
@@ -67,8 +67,8 @@ def falling_action(channel):
 
 
 def main():
-    GPIO.add_event_detect(pin, GPIO.RISING, callback=rising_action, bouncetime=300)
-    GPIO.add_event_detect(pin, GPIO.FALLING, callback=falling_action, bouncetime=300)
+    GPIO.add_event_detect(pin, GPIO.RISING, callback=rising_action, bouncetime=5)
+    GPIO.add_event_detect(pin, GPIO.FALLING, callback=falling_action, bouncetime=5)
 
 
     parser = ArgumentParser(prog='fslweather')
@@ -110,7 +110,7 @@ def main():
         with open(json_path, 'w') as outfile:
             json.dump(data, outfile)
         if not args.asservice:
-            print(template.format(**data), end='')
+            print(template.format(**data))
         if args.withhue:
             hue_light_colouring('LightStrips 1', data['rate'], maximum=data['max'])
         sleep(calculate_interval)
